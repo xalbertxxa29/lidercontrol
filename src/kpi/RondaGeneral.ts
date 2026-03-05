@@ -90,7 +90,18 @@ export function initRondaGeneral(tabId: string) {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>
           Estado de Rondas
         </h4>
-        <div class="chart-wrap" style="height:250px;"><canvas id="chartRGEstado"></canvas></div>
+        <div class="risk-dashboard">
+          <div class="risk-chart-area">
+            <div class="chart-wrap" style="height:220px;"><canvas id="chartRGEstado"></canvas></div>
+            <div class="risk-total-center">
+              <div class="risk-total-num" id="rg-total-estado-num">0</div>
+              <div class="risk-total-label">TOTAL</div>
+            </div>
+          </div>
+          <div class="risk-bars-area" id="rg-estado-bars">
+            <!-- Barras generadas dinámicamente -->
+          </div>
+        </div>
       </div>
       <div class="card chart-card" style="padding:16px">
         <h4 class="card-title" style="display: flex; align-items: center; gap: 6px; margin-bottom: 16px;">
@@ -218,6 +229,13 @@ async function applyFiltersAndFetch() {
     rgFilters.cliente = cliente === 'Todos' ? '' : cliente;
     rgFilters.unidad = unidad === 'Todas' ? '' : unidad;
 
+    // Sincronizar fechas del picker por seguridad
+    const picker = ($('#kpiRondaGenFecha') as any).data('daterangepicker');
+    if (picker) {
+        rgFilters.fechaInicio = picker.startDate.format('YYYY-MM-DD');
+        rgFilters.fechaFin = picker.endDate.format('YYYY-MM-DD');
+    }
+
     UI.showLoader('Consultando Rondas...', 'Buscando registros', 20);
 
     try {
@@ -281,72 +299,84 @@ async function applyFiltersAndFetch() {
 }
 
 function drawEstadoChart() {
-    const ctx = document.getElementById('chartRGEstado') as HTMLCanvasElement;
-    if (!ctx) return;
+    const canvas = document.getElementById('chartRGEstado') as HTMLCanvasElement;
+    if (!canvas) return;
     if (chartEstado) chartEstado.destroy();
 
     const counts: Record<string, number> = {};
+    const estados = ['TERMINADA', 'INCOMPLETA', 'NO REALIZADA', 'EN_PROCESO'];
+    estados.forEach(e => counts[e] = 0);
+
     rgData.forEach(r => {
-        let st = r.estado || 'No especificado';
+        let st = r.estado || 'NO REALIZADA';
         if (st === 'NO_REALIZADA') st = 'NO REALIZADA';
         if (st === 'EN_PROGRESO') st = 'EN_PROCESO';
         if (st === 'INCOMPLETADA') st = 'INCOMPLETA';
-        counts[st] = (counts[st] || 0) + 1;
+        if (estados.includes(st)) counts[st]++;
+        else counts['NO REALIZADA']++;
     });
+
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+    const totalEl = document.getElementById('rg-total-estado-num');
+    if (totalEl) totalEl.textContent = total.toString();
 
     const colors: Record<string, string> = {
         'TERMINADA': '#22c55e',
         'INCOMPLETA': '#f59e0b',
         'NO REALIZADA': '#ef4444',
-        'EN_PROCESO': '#3b82f6',
-        'No especificado': '#9ca3af'
+        'EN_PROCESO': '#3b82f6'
     };
 
     const labels = Object.keys(counts);
     const data = Object.values(counts);
     const bgColors = labels.map(l => colors[l] || '#6366f1');
 
-    chartEstado = new Chart(ctx, {
+    chartEstado = new Chart(canvas, {
         type: 'doughnut',
         data: {
             labels,
             datasets: [{
                 data,
                 backgroundColor: bgColors,
-                borderColor: 'rgba(15,23,42,0.9)',
-                borderWidth: 3,
-                hoverOffset: 10
+                borderColor: 'transparent',
+                borderWidth: 0,
+                hoverOffset: 4
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            cutout: '68%',
+            cutout: '80%',
             plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        color: '#cbd5e1',
-                        font: { size: 11, weight: 'bold' },
-                        padding: 16,
-                        boxWidth: 10,
-                        boxHeight: 10,
-                        usePointStyle: true,
-                        pointStyle: 'circle'
-                    }
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(15,23,42,0.95)',
-                    titleColor: '#f1f5f9',
-                    bodyColor: '#94a3b8',
-                    padding: 12,
-                    borderColor: 'rgba(255,255,255,0.08)',
-                    borderWidth: 1,
-                    callbacks: { label: (c) => ` ${c.label}: ${c.parsed} rondas` }
-                }
+                legend: { display: false },
+                tooltip: { enabled: true }
             }
         }
     });
+
+    // Inyectar barras
+    const barsContainer = document.getElementById('rg-estado-bars');
+    if (barsContainer) {
+        barsContainer.innerHTML = labels.map(label => {
+            const count = counts[label];
+            const perc = total > 0 ? Math.round((count / total) * 100) : 0;
+            const color = colors[label];
+            return `
+        <div class="risk-bar-item">
+          <div class="risk-bar-header">
+            <div class="risk-bar-label">
+              <div class="risk-dot" style="background: ${color}"></div>
+              ${label.charAt(0) + label.slice(1).toLowerCase()}
+            </div>
+            <div class="risk-bar-perc">${perc}%</div>
+          </div>
+          <div class="risk-bar-track">
+            <div class="risk-bar-fill" style="width: ${perc}%; background: linear-gradient(90deg, ${color}dd, ${color})"></div>
+          </div>
+        </div>
+      `;
+        }).join('');
+    }
 }
 function drawUnidadesChart() {
     const ctx = document.getElementById('chartRGUnidad') as HTMLCanvasElement;

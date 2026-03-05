@@ -31,7 +31,7 @@ const SHELL_HTML = `
   <div class="sidebar" id="sidebar">
     <div class="sidebar-brand">
       <div class="sidebar-logo">
-        <img src="/logo.webp" alt="LiderControl" style="width: 100%; height: auto; object-fit: contain; filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.4));" />
+        <img src="logo.webp" alt="LiderControl" style="width: 100%; height: auto; object-fit: contain; filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.4));" />
       </div>
       <div class="sidebar-title">LiderControl</div>
     </div>

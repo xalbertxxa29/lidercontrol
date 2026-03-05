@@ -2834,3 +2834,94 @@ input:checked+.slider:before {
     width: 100%;
   }
 }
+
+/* ── Custom DateRangePicker Futurista ── */
+.daterangepicker {
+  background-color: rgba(10, 15, 25, 0.95) !important;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 240, 255, 0.3) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8), 0 0 15px rgba(0, 240, 255, 0.1) !important;
+  font-family: 'Inter', sans-serif !important;
+  color: var(--text) !important;
+  border-radius: 12px !important;
+  margin-top: 8px !important;
+}
+
+.daterangepicker:before,
+.daterangepicker:after {
+  display: none !important;
+}
+
+.daterangepicker .calendar-table {
+  background-color: transparent !important;
+  border: none !important;
+}
+
+.daterangepicker .calendar-table td,
+.daterangepicker .calendar-table th {
+  background-color: transparent !important;
+  color: var(--text) !important;
+  border-radius: 6px !important;
+  border: none !important;
+}
+
+.daterangepicker td.off,
+.daterangepicker td.off.in-range,
+.daterangepicker td.off.start-date,
+.daterangepicker td.off.end-date {
+  background-color: transparent !important;
+  color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.daterangepicker td.in-range {
+  background-color: rgba(0, 240, 255, 0.1) !important;
+  color: #fff !important;
+}
+
+.daterangepicker td.active,
+.daterangepicker td.active:hover {
+  background-color: var(--accent) !important;
+  color: #fff !important;
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.5) !important;
+}
+
+.daterangepicker td.available:hover,
+.daterangepicker th.available:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.daterangepicker .drp-buttons {
+  border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.daterangepicker .drp-selected {
+  color: var(--text-muted) !important;
+  font-size: 11px !important;
+}
+
+.daterangepicker .btn {
+  font-weight: 600 !important;
+  padding: 6px 16px !important;
+  font-size: 12px !important;
+  border-radius: 6px !important;
+}
+
+.daterangepicker .applyBtn {
+  background-color: var(--accent) !important;
+  border-color: var(--accent) !important;
+}
+
+.daterangepicker .cancelBtn {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: var(--text) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.daterangepicker select.monthselect,
+.daterangepicker select.yearselect {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
+  border-radius: 4px !important;
+  padding: 2px 4px !important;
+}

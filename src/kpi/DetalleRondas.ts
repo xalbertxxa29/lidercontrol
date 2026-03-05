@@ -230,6 +230,13 @@ async function applyFiltersAndFetch(isLoadMore = false) {
     drFilters.unidad = unidad === 'Todas' ? '' : unidad;
     drFilters.estado = estado === 'Todos' ? '' : estado;
 
+    // Sincronizar fechas del picker
+    const picker = ($('#kpiDetRonFecha') as any).data('daterangepicker');
+    if (picker) {
+        drFilters.fechaInicio = picker.startDate.format('YYYY-MM-DD');
+        drFilters.fechaFin = picker.endDate.format('YYYY-MM-DD');
+    }
+
     // Yield to browser so overlay paints before heavy async work begins
     await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
 
