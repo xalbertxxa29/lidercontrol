@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Panel LiderControl</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <!-- DateRangePicker -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <!-- Choices.js -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+    <!-- pdfmake -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.3.5/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.3.5/vfs_fonts.js"></script>
+    <!-- App Styles -->
+    <link rel="stylesheet" href="/src/style.css" />
+</head>
+
+<body>
+    <div id="app">
+        <!-- Shell rendered by JS -->
+    </div>
+
+    <!-- Loading screen -->
+    <div id="global-loader" class="global-loader">
+        <div class="stars-container"></div>
+        <div class="loader-content">
+            <div class="loader-logo-wrap">
+                <div class="orbit-system">
+                    <div class="orbit o1">
+                        <div class="head"></div>
+                    </div>
+                    <div class="orbit o2">
+                        <div class="head"></div>
+                    </div>
+                    <div class="orbit o3">
+                        <div class="head"></div>
+                    </div>
+                    <div class="orbit o4">
+                        <div class="head"></div>
+                    </div>
+                </div>
+                <div class="logo-glow"></div>
+                <img src="/logo.webp" alt="Logo" class="loader-logo" />
+            </div>
+            <div class="loader-text">
+                <h3>Cargando sistema…</h3>
+                <p>Preparando información</p>
+            </div>
+            <div class="loader-bar"><span id="loaderBar"></span></div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- Dialog -->
+    <div class="dialog" id="dialog" aria-hidden="true" role="dialog" aria-modal="true">
+        <div class="dialog-box">
+            <div class="dialog-icon" id="dialogIcon">!</div>
+            <h3 id="dialogTitle">Título</h3>
+            <p id="dialogMessage" class="muted">Mensaje…</p>
+            <div class="dialog-actions" id="dialogActions"></div>
+        </div>
+    </div>
+
+    <!-- App entry -->
+    <script type="module" src="/src/main.ts"></script>
+</body>
+
+</html>

@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LiderControl — Iniciar Sesión</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="/src/login.css" />
+</head>
+
+<body>
+  <div class="login-bg">
+    <div class="login-particles" id="particles">
+      <div class="login-scanner"></div>
+    </div>
+    <div class="login-card">
+      <div class="login-logo">
+        <img src="/logo_liberman.png" alt="LiderControl" class="login-logo-img" id="loginLogoImg"
+          onerror="this.style.display='none'" />
+        <div class="login-brand">
+          <div class="login-brand-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+          </div>
+          <div>
+            <h1 class="login-title">LiderControl</h1>
+            <p class="login-subtitle">Sistema de Control Integral</p>
+          </div>
+        </div>
+      </div>
+
+      <form id="loginForm" class="login-form">
+        <div class="form-field">
+          <label class="form-label" for="loginEmail">Correo electrónico</label>
+          <div class="input-wrapper">
+            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+              <polyline points="22,6 12,13 2,6" />
+            </svg>
+            <input type="email" id="loginEmail" class="form-input" placeholder="usuario@empresa.com"
+              autocomplete="email" required />
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="loginPass">Contraseña</label>
+          <div class="input-wrapper">
+            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+            <input type="password" id="loginPass" class="form-input" placeholder="••••••••"
+              autocomplete="current-password" required />
+            <button type="button" class="toggle-pass" id="togglePass" tabindex="-1">
+              <svg id="eyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div id="loginError" class="login-error" style="display:none"></div>
+
+        <button type="submit" id="loginBtn" class="login-btn">
+          <span class="btn-text">Ingresar al Sistema</span>
+          <span class="btn-spinner" style="display:none">
+            <svg class="spinner-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+            </svg>
+          </span>
+        </button>
+      </form>
+
+      <p class="login-footer">© 2025 LiderControl · Todos los derechos reservados</p>
+    </div>
+  </div>
+
+  <script type="module" src="/src/login.ts"></script>
+</body>
+
+</html>
