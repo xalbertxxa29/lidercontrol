@@ -174,7 +174,7 @@ function switchView(viewId: string) {
 // Check auth state
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
-    window.location.href = '/';
+    window.location.href = 'index.html';
     return;
   }
 

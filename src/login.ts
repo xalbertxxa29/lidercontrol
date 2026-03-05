@@ -76,7 +76,7 @@ form?.addEventListener('submit', async (e) => {
     try {
         await signInWithEmailAndPassword(auth, email, pass);
         // Redirect to app
-        window.location.href = '/app.html';
+        window.location.href = 'app.html';
     } catch (err: any) {
         let msg = 'Error al iniciar sesión. Verifica tus credenciales.';
         if (err.code === 'auth/user-not-found') msg = 'Usuario no encontrado.';
