@@ -1,4 +1,5 @@
 import { UI } from '../ui';
+import { masterCache } from '../cache-service';
 import { db } from '../firebase';
 import {
   collection, getDocs, doc, setDoc, deleteDoc, query, where, orderBy, limit
@@ -298,8 +299,8 @@ export async function initCrearQRView() {
 
 async function preloadData() {
   try {
-    const snap = await getDocs(collection(db, COLLECTIONS.CLIENT_UNITS));
-    cachedClientes = snap.docs.map(d => d.id).sort();
+    const data = await masterCache.getClientUnits();
+    cachedClientes = Object.keys(data).sort();
   } catch (e) { console.error(e); }
 }
 
@@ -445,15 +446,15 @@ function setupEventListeners() {
 
   async function loadFilterUnidades(clienteId: string) {
     try {
-      const snap = await getDocs(collection(db, `${COLLECTIONS.CLIENT_UNITS}/${clienteId}/UNIDADES`));
-      filterUnidades = snap.docs.map(d => d.id).sort();
+      const data = await masterCache.getClientUnits();
+      filterUnidades = (data[clienteId] || []).sort();
     } catch (e) { filterUnidades = []; }
   }
 
   async function loadUnidades(clienteId: string) {
     try {
-      const snap = await getDocs(collection(db, `${COLLECTIONS.CLIENT_UNITS}/${clienteId}/UNIDADES`));
-      cachedUnidades = snap.docs.map(d => d.id).sort();
+      const data = await masterCache.getClientUnits();
+      cachedUnidades = (data[clienteId] || []).sort();
     } catch (e) { cachedUnidades = []; }
   }
 

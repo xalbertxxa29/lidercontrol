@@ -1,8 +1,9 @@
 import { UI } from '../ui';
 import { db } from '../firebase';
-import { collection, getDocs, query, where, orderBy, limit, doc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, query, where, limit, doc, updateDoc } from 'firebase/firestore';
 import { accessControl } from '../access-control';
 import * as XLSX from 'xlsx';
+import { masterCache } from '../cache-service';
 import moment from 'moment';
 import { getLogoBase64, exportToPDF as pdfExportHelper } from '../pdf-utils';
 // @ts-ignore
@@ -121,10 +122,8 @@ async function loadFilters() {
   if (!selC || !selU) return;
 
   try {
-    const snap = await getDocs(collection(db, COLLECTIONS.CLIENT_UNITS));
-    const clientes: string[] = [];
-    snap.forEach(d => clientes.push(d.id));
-    clientes.sort();
+    const data = await masterCache.getClientUnits();
+    const clientes: string[] = Object.keys(data).sort();
 
     if (accessControl.isCliente() && accessControl.state) {
       selC.innerHTML = `<option value="${accessControl.state.clienteAsignado}">${accessControl.state.clienteAsignado}</option>`;
@@ -144,10 +143,8 @@ async function loadUnidades(cliente: string, selU: HTMLSelectElement) {
   }
   selU.innerHTML = '<option value="">Cargando...</option>';
   try {
-    const snap = await getDocs(collection(db, `${COLLECTIONS.CLIENT_UNITS}/${cliente}/UNIDADES`));
-    const uni: string[] = [];
-    snap.forEach(d => uni.push(d.id));
-    uni.sort();
+    const data = await masterCache.getClientUnits();
+    const uni: string[] = (data[cliente] || []).sort();
 
     if (accessControl.isCliente() && accessControl.state && accessControl.state.unidadesAsignadas && accessControl.state.unidadesAsignadas.length > 0) {
       const uniAsig = accessControl.state.unidadesAsignadas[0];
@@ -233,7 +230,6 @@ async function fetchIncidencias() {
 
   try {
     let q = query(collection(db, COLLECTIONS.INCIDENTS),
-      orderBy('timestamp', 'desc'),
       limit(2000));
 
     const snap = await getDocs(q);
@@ -257,6 +253,8 @@ async function fetchIncidencias() {
       if (r.dateObj < startDate || r.dateObj > endDate) return false;
       return true;
     });
+
+    rawRows.sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime());
 
     allIncidents = rawRows;
     filteredIncidents = rawRows;

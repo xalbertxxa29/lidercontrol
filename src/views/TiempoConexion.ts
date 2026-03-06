@@ -1,13 +1,14 @@
 import { UI } from '../ui';
 import { db } from '../firebase';
-import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 import { accessControl } from '../access-control';
+import { masterCache } from '../cache-service';
+import { collection, getDocs, query, limit, startAfter } from 'firebase/firestore';
 import * as XLSX from 'xlsx';
 import moment from 'moment';
 import { getLogoBase64, exportToPDF as pdfExportHelper } from '../pdf-utils';
 
 const COLLECTIONS = {
-  TIME_CONTROL: 'CONTROL_TIEMPOS_USUARIOS',
+  TIEMPO_CONEXION: 'CONTROL_TIEMPOS_USUARIOS',
   USERS: 'USUARIOS',
   CLIENT_UNITS: 'CLIENTE_UNIDAD'
 };
@@ -127,10 +128,8 @@ async function loadFilters() {
   if (!selC || !selU) return;
 
   try {
-    const snap = await getDocs(collection(db, COLLECTIONS.CLIENT_UNITS));
-    const clientes: string[] = [];
-    snap.forEach(d => clientes.push(d.id));
-    clientes.sort();
+    const data = await masterCache.getClientUnits();
+    const clientes: string[] = Object.keys(data).sort();
 
     if (accessControl.isCliente() && accessControl.state) {
       selC.innerHTML = `<option value="${accessControl.state.clienteAsignado}">${accessControl.state.clienteAsignado}</option>`;
@@ -150,10 +149,8 @@ async function loadUnidades(cliente: string, selU: HTMLSelectElement) {
   }
   selU.innerHTML = '<option value="">Cargando...</option>';
   try {
-    const snap = await getDocs(collection(db, `${COLLECTIONS.CLIENT_UNITS}/${cliente}/UNIDADES`));
-    const uni: string[] = [];
-    snap.forEach(d => uni.push(d.id));
-    uni.sort();
+    const data = await masterCache.getClientUnits();
+    const uni: string[] = (data[cliente] || []).sort();
 
     if (accessControl.isCliente() && accessControl.state && accessControl.state.unidadesAsignadas && accessControl.state.unidadesAsignadas.length > 0) {
       const uniAsig = accessControl.state.unidadesAsignadas[0];
@@ -219,9 +216,10 @@ async function fetchTiempos() {
   UI.showLoader('Buscando...', 'Consultando tiempos de conexión', 20);
 
   try {
-    let q = query(collection(db, COLLECTIONS.TIME_CONTROL),
-      orderBy('horaInicio', 'desc'),
-      limit(2000));
+    let q = query(
+      collection(db, COLLECTIONS.TIEMPO_CONEXION),
+      limit(2000)
+    );
 
     const snap = await getDocs(q);
 
@@ -254,6 +252,9 @@ async function fetchTiempos() {
       if (r.hIn < startDate || r.hIn > endDate) return false;
       return true;
     });
+
+    // Ordenamiento
+    rawRows.sort((a, b) => b.hIn.getTime() - a.hIn.getTime());
 
     allConexions = rawRows;
     filteredConexions = rawRows;

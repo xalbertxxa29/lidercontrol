@@ -1,5 +1,5 @@
 import { db } from '../firebase';
-import { collection, query, where, getDocs, limit, orderBy, startAfter } from 'firebase/firestore';
+import { collection, query, where, getDocs, limit, startAfter } from 'firebase/firestore';
 import { UI } from '../ui';
 import { accessControl } from '../access-control';
 import { getUnidadesByCliente, getAllClientes, exportToExcel } from '../utils';
@@ -211,7 +211,7 @@ async function applyFiltersAndFetch(isLoadMore = false) {
     daFilters.estado = estado === 'Todos' ? '' : estado;
 
     try {
-        let q = query(collection(db, 'ACCESO_PEATONAL'), orderBy('FECHA_INGRESO', 'desc'), limit(PAGE_SIZE));
+        let q = query(collection(db, 'ACCESO_PEATONAL'), limit(PAGE_SIZE));
 
         if (lastVisibleDoc && isLoadMore) {
             q = query(q, startAfter(lastVisibleDoc));

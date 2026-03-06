@@ -1,5 +1,5 @@
 import { db } from '../firebase';
-import { collection, query, where, getDocs, limit, orderBy, startAfter } from 'firebase/firestore';
+import { collection, query, where, getDocs, limit, startAfter } from 'firebase/firestore';
 import { UI } from '../ui';
 import { accessControl } from '../access-control';
 import { exportToExcel, tsToDate } from '../utils';
@@ -150,7 +150,7 @@ async function applyFiltersAndFetch() {
   hmFilters.unidad = unidad === 'Todas' ? '' : unidad;
 
   try {
-    let q = query(collection(db, 'INCIDENCIASHYM_REGISTRADAS'), orderBy('fechaRegistro', 'desc'), limit(PAGE_SIZE));
+    let q = query(collection(db, 'INCIDENCIASHYM_REGISTRADAS'), limit(PAGE_SIZE));
 
 
 

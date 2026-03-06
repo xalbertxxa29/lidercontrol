@@ -1,6 +1,7 @@
 import { UI } from '../ui';
 import { db } from '../firebase';
 import { accessControl } from '../access-control';
+import { masterCache } from '../cache-service';
 import {
   collection,
   getDocs,
@@ -366,12 +367,15 @@ async function handleSave() {
   try {
     if (type === 'cliente') {
       await setDoc(doc(db, COLLECTIONS.CLIENT_UNITS, value), { creado: new Date(), descripcion: value });
+      masterCache.clearCache();
       await loadClientes();
     } else if (type === 'unidad') {
       await setDoc(doc(db, `${COLLECTIONS.CLIENT_UNITS}/${selectedCliente}/UNIDADES`, value), { nombre: value, creado: new Date() });
+      masterCache.clearCache();
       await loadUnidades(selectedCliente!);
     } else if (type === 'puesto') {
       await setDoc(doc(db, `${COLLECTIONS.CLIENT_UNITS}/${selectedCliente}/UNIDADES/${selectedUnidad}/PUESTOS`, value), { nombre: value, creado: new Date() });
+      masterCache.clearCache();
       await loadPuestos(selectedCliente!, selectedUnidad!);
     }
 
@@ -392,6 +396,7 @@ async function deleteEntry(type: 'cliente' | 'unidad' | 'puesto', id: string) {
     try {
       if (type === 'cliente') {
         await deleteDoc(doc(db, COLLECTIONS.CLIENT_UNITS, id));
+        masterCache.clearCache();
         if (selectedCliente === id) {
           selectedCliente = null;
           selectedUnidad = null;
@@ -401,6 +406,7 @@ async function deleteEntry(type: 'cliente' | 'unidad' | 'puesto', id: string) {
         await loadClientes();
       } else if (type === 'unidad') {
         await deleteDoc(doc(db, `${COLLECTIONS.CLIENT_UNITS}/${selectedCliente}/UNIDADES/${id}`));
+        masterCache.clearCache();
         if (selectedUnidad === id) {
           selectedUnidad = null;
           listaPuestos = [];
@@ -408,6 +414,7 @@ async function deleteEntry(type: 'cliente' | 'unidad' | 'puesto', id: string) {
         await loadUnidades(selectedCliente!);
       } else if (type === 'puesto') {
         await deleteDoc(doc(db, `${COLLECTIONS.CLIENT_UNITS}/${selectedCliente}/UNIDADES/${selectedUnidad}/PUESTOS/${id}`));
+        masterCache.clearCache();
         await loadPuestos(selectedCliente!, selectedUnidad!);
       }
       UI.toast('Eliminado correctamente', 'success');

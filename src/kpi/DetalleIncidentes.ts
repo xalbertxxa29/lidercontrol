@@ -1,5 +1,5 @@
 import { db } from '../firebase';
-import { collection, query, where, getDocs, limit, orderBy, startAfter } from 'firebase/firestore';
+import { collection, query, where, getDocs, limit, startAfter } from 'firebase/firestore';
 import { UI } from '../ui';
 import { accessControl } from '../access-control';
 import { tsToDate, getUnidadesByCliente, getAllClientes, exportToExcel } from '../utils';
@@ -175,7 +175,6 @@ async function applyDetalleFilters() {
         let q = query(collection(db, 'INCIDENCIAS_REGISTRADAS'),
             where('timestamp', '>=', startDate),
             where('timestamp', '<=', endDate),
-            orderBy('timestamp', 'desc'),
             limit(PAGE_SIZE)
         );
 

@@ -249,7 +249,6 @@ async function fetchAndRenderData() {
             collection(db, 'INCIDENCIAS_REGISTRADAS'),
             where('timestamp', '>=', fetchStart),
             where('timestamp', '<=', fetchEnd),
-            orderBy('timestamp', 'desc'),
             limit(5000)
         );
         q = accessControl.applyClienteFilter(q);

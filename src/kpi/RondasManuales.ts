@@ -1,11 +1,13 @@
 import { db } from '../firebase';
-import { collection, query, where, getDocs, limit, orderBy, startAfter } from 'firebase/firestore';
+import { collection, query, where, getDocs, limit, startAfter } from 'firebase/firestore';
 import { UI } from '../ui';
 import { accessControl } from '../access-control';
 import { getUnidadesByCliente, getAllClientes, exportToExcel, tsToDate } from '../utils';
 import { getLogoBase64, generateChartImage, exportToPDF } from '../pdf-utils';
 import Choices from 'choices.js';
 import Chart from 'chart.js/auto';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
+Chart.register(ChartDataLabels);
 import { moment, $ } from '../globals';
 
 import 'daterangepicker';
@@ -15,7 +17,7 @@ let rmCharts: Record<string, Chart> = {};
 let rmData: any[] = [];
 let lastVisibleDoc: any = null;
 let allLoadedDocs: any[] = [];
-const PAGE_SIZE = 5000;
+const PAGE_SIZE = 800;
 let rmCurrentPage = 1;
 const ITEMS_PER_PAGE = 10;
 let rmFilters = {
@@ -52,11 +54,36 @@ export function initRondasManuales(tabId: string) {
     </div>
 
     <!-- Charts -->
-    <div class="dashboard-grid grid-2" style="margin-bottom:16px">
-      <div class="card chart-card col-span-2"><h4 class="card-title">Rondas por Fecha</h4><div class="chart-wrap" style="height:250px"><canvas id="chartRMFecha"></canvas></div></div>
-      <div class="card chart-card"><h4 class="card-title">Categorizado por Punto</h4><div class="chart-wrap" style="height:300px"><canvas id="chartRMPorPunto"></canvas></div></div>
-      <div class="card chart-card"><h4 class="card-title">Por Usuario</h4><div class="chart-wrap" style="height:300px"><canvas id="chartRMUsuario"></canvas></div></div>
-      <div class="card chart-card col-span-2"><h4 class="card-title">Por Unidad</h4><div class="chart-wrap" style="height:300px"><canvas id="chartRMUnidad"></canvas></div></div>
+    <div class="dashboard-grid grid-2" style="margin-bottom:16px; align-items: stretch;">
+      
+      <div class="card chart-card" style="display:flex; flex-direction:column; height:350px; overflow:hidden;">
+        <h4 class="card-title" style="flex-shrink:0;">📈 Rondas por Fecha</h4>
+        <div class="chart-wrap" style="flex-grow:1; flex-shrink:1; overflow-x:auto; overflow-y:hidden; padding:0 8px;">
+          <div id="chartRMFechaContainer" style="height:100%; min-width:100%; position:relative;"><canvas id="chartRMFecha"></canvas></div>
+        </div>
+      </div>
+      
+      <div class="card chart-card" style="display:flex; flex-direction:column; height:350px; overflow:hidden;">
+        <h4 class="card-title" style="flex-shrink:0;">📊 Cantidad de Rondas por Punto</h4>
+        <div class="chart-wrap" style="flex-grow:1; flex-shrink:1; overflow-y:auto; overflow-x:hidden; padding:0 8px;">
+          <div id="chartRMPorPuntoContainer" style="width:100%; min-height:100%; position:relative;"><canvas id="chartRMPorPunto"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card chart-card" style="display:flex; flex-direction:column; height:350px; overflow:hidden;">
+        <h4 class="card-title" style="flex-shrink:0;">👤 Registros por Usuario</h4>
+        <div class="chart-wrap" style="flex-grow:1; flex-shrink:1; overflow-y:auto; overflow-x:hidden; padding:0 8px;">
+          <div id="chartRMUsuarioContainer" style="width:100%; min-height:100%; position:relative;"><canvas id="chartRMUsuario"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card chart-card" style="display:flex; flex-direction:column; height:350px; overflow:hidden;">
+        <h4 class="card-title" style="flex-shrink:0;">🏢 Rondas por Unidad</h4>
+        <div class="chart-wrap" style="flex-grow:1; flex-shrink:1; overflow-x:auto; overflow-y:hidden; padding:0 8px;">
+          <div id="chartRMUnidadContainer" style="height:100%; min-width:100%; position:relative;"><canvas id="chartRMUnidad"></canvas></div>
+        </div>
+      </div>
+
     </div>
 
     <!-- Table -->
@@ -176,7 +203,7 @@ async function applyFiltersAndFetch() {
     rmFilters.unidad = unidad === 'Todas' ? '' : unidad;
 
     try {
-        let q = query(collection(db, 'RONDA_MANUAL'), orderBy('timestamp', 'desc'), limit(PAGE_SIZE));
+        let q = query(collection(db, 'RONDA_MANUAL'), limit(PAGE_SIZE));
 
 
 
@@ -276,10 +303,23 @@ function drawFechaChart() {
         if (map[k] !== undefined) map[k]++;
     });
 
+    const container = document.getElementById('chartRMFechaContainer');
+    if (container) {
+        container.style.width = Math.max(container.clientWidth, labels.length * 40) + 'px';
+    }
+
     rmCharts.fecha = new Chart(ctx, {
         type: 'line',
         data: { labels, datasets: [{ label: 'Rondas', data: labels.map(l => map[l]), borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.3 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#94a3b8' } }, y: { ticks: { color: '#94a3b8', stepSize: 1 } } } }
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            layout: { padding: { top: 20 } },
+            plugins: {
+                legend: { display: false },
+                datalabels: { anchor: 'end', align: 'top', color: '#f8fafc', font: { size: 11, weight: 'bold' } }
+            },
+            scales: { x: { ticks: { color: '#94a3b8' } }, y: { ticks: { color: '#94a3b8', stepSize: 1 } } }
+        }
     });
 }
 
@@ -291,10 +331,27 @@ function drawPuntoChart() {
     const counts: Record<string, number> = {};
     rmData.forEach(r => { const p = r.nombrePunto || 'S/P'; counts[p] = (counts[p] || 0) + 1; });
 
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    const labels = sorted.map(x => x[0]);
+    const data = sorted.map(x => x[1]);
+
+    const container = document.getElementById('chartRMPorPuntoContainer');
+    if (container && container.parentElement) {
+        container.style.height = Math.max(container.parentElement.clientHeight, labels.length * 35) + 'px';
+    }
+
     rmCharts.punto = new Chart(ctx, {
-        type: 'doughnut',
-        data: { labels: Object.keys(counts), datasets: [{ data: Object.values(counts), backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#3b82f6'] }] },
-        options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 } } } } }
+        type: 'bar',
+        data: { labels, datasets: [{ label: 'Registros', data, backgroundColor: '#f59e0b', maxBarThickness: 10, borderRadius: 4 }] },
+        options: {
+            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+            layout: { padding: { right: 30 } },
+            plugins: {
+                legend: { display: false },
+                datalabels: { anchor: 'end', align: 'right', color: '#f8fafc', font: { size: 10, weight: 'bold' } }
+            },
+            scales: { x: { ticks: { color: '#94a3b8', stepSize: 1 } }, y: { ticks: { color: '#94a3b8', font: { size: 10 } } } }
+        }
     });
 }
 
@@ -306,14 +363,27 @@ function drawUsuarioChart() {
     const counts: Record<string, number> = {};
     rmData.forEach(r => { const u = r.usuario || r.user || r.nombreUsuario || 'Anónimo'; counts[u] = (counts[u] || 0) + 1; });
 
-    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
     const labels = sorted.map(x => x[0]);
     const data = sorted.map(x => x[1]);
 
+    const container = document.getElementById('chartRMUsuarioContainer');
+    if (container && container.parentElement) {
+        container.style.height = Math.max(container.parentElement.clientHeight, labels.length * 35) + 'px';
+    }
+
     rmCharts.usuario = new Chart(ctx, {
         type: 'bar',
-        data: { labels, datasets: [{ label: 'Registros', data, backgroundColor: '#3b82f6' }] },
-        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#94a3b8', stepSize: 1 } }, y: { ticks: { color: '#94a3b8' } } } }
+        data: { labels, datasets: [{ label: 'Registros', data, backgroundColor: '#3b82f6', maxBarThickness: 10, borderRadius: 4 }] },
+        options: {
+            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+            layout: { padding: { right: 30 } },
+            plugins: {
+                legend: { display: false },
+                datalabels: { anchor: 'end', align: 'right', color: '#f8fafc', font: { size: 10, weight: 'bold' } }
+            },
+            scales: { x: { ticks: { color: '#94a3b8', stepSize: 1 } }, y: { ticks: { color: '#94a3b8', font: { size: 10 } } } }
+        }
     });
 }
 
@@ -326,11 +396,23 @@ function drawUnidadChart() {
     rmData.forEach(r => { const u = r.unidad || 'S/U'; counts[u] = (counts[u] || 0) + 1; });
 
     const labels = Object.keys(counts).sort();
+    const container = document.getElementById('chartRMUnidadContainer');
+    if (container) {
+        container.style.width = Math.max(container.clientWidth, labels.length * 40) + 'px';
+    }
+
     rmCharts.unidad = new Chart(ctx, {
         type: 'bar',
-
-        data: { labels, datasets: [{ label: 'Registros', data: labels.map(l => counts[l]), backgroundColor: '#10b981' }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#94a3b8', font: { size: 10 } } }, y: { ticks: { color: '#94a3b8', stepSize: 1 } } } }
+        data: { labels, datasets: [{ label: 'Registros', data: labels.map(l => counts[l]), backgroundColor: '#10b981', maxBarThickness: 20, borderRadius: 4 }] },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            layout: { padding: { top: 20 } },
+            plugins: {
+                legend: { display: false },
+                datalabels: { anchor: 'end', align: 'top', color: '#f8fafc', font: { size: 11, weight: 'bold' } }
+            },
+            scales: { x: { ticks: { color: '#94a3b8', font: { size: 10 } } }, y: { ticks: { color: '#94a3b8', stepSize: 1 } } }
+        }
     });
 }
 

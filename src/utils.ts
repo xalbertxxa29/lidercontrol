@@ -69,6 +69,13 @@ export function tsToDate(ts: any): Date | null {
     if (!ts) return null;
     if (ts.toDate) return ts.toDate();
     if (ts instanceof Date) return ts;
+    if (typeof ts === 'string') {
+        const dmyMatch = ts.match(/^(\d{2})\/(\d{2})\/(\d{4})(?: (\d{2}):(\d{2})(?::(\d{2}))?)?/);
+        if (dmyMatch) {
+            const [_, dd, mm, yyyy, hr, min, sec] = dmyMatch;
+            return new Date(Number(yyyy), Number(mm) - 1, Number(dd), Number(hr || 0), Number(min || 0), Number(sec || 0));
+        }
+    }
     if (typeof ts === 'string' || typeof ts === 'number') {
         const d = new Date(ts);
         return isNaN(d.getTime()) ? null : d;

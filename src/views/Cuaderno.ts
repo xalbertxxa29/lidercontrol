@@ -202,7 +202,6 @@ async function fetchCuaderno() {
     const unitVal = uniSelect?.value || '';
 
     let q = query(collection(db, COLLECTIONS.CUADERNO),
-      orderBy('timestamp', 'desc'),
       limit(2000));
 
     // Por limitación de índices de Firebase si usamos where() con timestamp y luego cliente, lo filtramos todo en memoria tras traer un gran bloque.
@@ -226,6 +225,8 @@ async function fetchCuaderno() {
       if (r.dateObj < startDate || r.dateObj > endDate) return false;
       return true;
     });
+
+    rawRows.sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime());
 
     allCuadernoRecords = rawRows;
     filteredCuadernoRecords = rawRows; // For search/sort if needed

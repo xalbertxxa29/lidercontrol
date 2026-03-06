@@ -1,5 +1,5 @@
 import { db } from '../firebase';
-import { collection, query, where, getDocs, limit, orderBy, startAfter } from 'firebase/firestore';
+import { collection, query, where, getDocs, limit, startAfter } from 'firebase/firestore';
 import { UI } from '../ui';
 import { accessControl } from '../access-control';
 import { getUnidadesByCliente, getAllClientes, exportToExcel, tsToDate } from '../utils';
@@ -185,7 +185,7 @@ async function applyFiltersAndFetch() {
     cvFilters.estado = estado === 'Todos' ? '' : estado;
 
     try {
-        let q = query(collection(db, 'ACCESO_VEHICULAR'), orderBy('timestamp', 'desc'), limit(PAGE_SIZE));
+        let q = query(collection(db, 'ACCESO_VEHICULAR'), limit(PAGE_SIZE));
 
         if (accessControl.state?.userType === 'CLIENTE' && accessControl.state.clienteAsignado) {
             q = query(q, where('cliente', '==', accessControl.state.clienteAsignado));

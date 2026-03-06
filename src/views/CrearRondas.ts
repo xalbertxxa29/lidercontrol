@@ -1,6 +1,7 @@
 import { db } from '../firebase';
 import { collection, query, where, getDocs, addDoc, deleteDoc, doc, orderBy, limit } from 'firebase/firestore';
 import { UI } from '../ui';
+import { masterCache } from '../cache-service';
 
 const COLLECTIONS = {
   CLIENT_UNITS: 'CLIENTE_UNIDAD',
@@ -232,8 +233,8 @@ export async function initCrearRondasView() {
 
 async function loadFilters() {
   try {
-    const snap = await getDocs(collection(db, COLLECTIONS.CLIENT_UNITS));
-    cachedClientes = snap.docs.map(d => d.id).sort();
+    const data = await masterCache.getClientUnits();
+    cachedClientes = Object.keys(data).sort();
   } catch (e) { }
 }
 
