@@ -802,7 +802,8 @@ function initializeResumenMap(data: any[]) {
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         subdomains: 'abcd',
-        maxZoom: 20
+        maxZoom: 20,
+        className: 'neo-green-map'
     }).addTo(resumenMap);
 
     const locationCounts: Record<string, any> = {};

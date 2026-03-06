@@ -8,6 +8,7 @@ import { initDetalleAcceso } from '../kpi/DetalleAcceso';
 import { initControlVehicular } from '../kpi/ControlVehicular';
 import { initRondasManuales } from '../kpi/RondasManuales';
 import { initIncidenciasHM } from '../kpi/IncidenciasHM';
+import { accessControl } from '../access-control';
 
 const KPI_TABS = [
     { id: 'kpi-resumen', label: 'Resumen', module: initResumen },
@@ -23,21 +24,35 @@ const KPI_TABS = [
 
 let isInitialized = false;
 let currentTab = '';
+let allowedTabs: typeof KPI_TABS = [];
 
 export function initKPIView() {
     if (isInitialized) return;
     const container = document.getElementById('view-kpi');
     if (!container) return;
 
+    // Filter tabs based on access control
+    const isHm = accessControl.state?.userType === 'ADMIN' ||
+        accessControl.state?.userType === 'SUPERVISOR' ||
+        (accessControl.state?.userType === 'CLIENTE' &&
+            ['HM', 'H&M'].includes((accessControl.state.clienteAsignado || '').toUpperCase()));
+
+    allowedTabs = KPI_TABS.filter(t => {
+        if (t.id === 'kpi-hym') return isHm;
+        return true;
+    });
+
+    if (allowedTabs.length === 0) return;
+
     // Render Subnav
     let html = `<div class="kpi-subnav">`;
-    KPI_TABS.forEach((t, i) => {
+    allowedTabs.forEach((t, i) => {
         html += `<button class="kpi-tab ${i === 0 ? 'active' : ''}" data-target="${t.id}">${t.label}</button>`;
     });
     html += `</div>
   <div class="kpi-content" id="kpiContent">`;
 
-    KPI_TABS.forEach((t, i) => {
+    allowedTabs.forEach((t, i) => {
         html += `<div class="kpi-subview ${i === 0 ? 'active' : ''}" id="${t.id}"></div>`;
     });
     html += `</div>`;
@@ -53,7 +68,7 @@ export function initKPIView() {
     });
 
     isInitialized = true;
-    switchTab(KPI_TABS[0].id); // Load first tab
+    switchTab(allowedTabs[0].id); // Load first allowed tab
 }
 
 function switchTab(tabId: string) {
@@ -68,7 +83,7 @@ function switchTab(tabId: string) {
 
     // Trigger initialization only if not already initialized
     if (el && !el.innerHTML.trim()) {
-        const tabDef = KPI_TABS.find(t => t.id === tabId);
+        const tabDef = allowedTabs.find(t => t.id === tabId);
         if (tabDef && tabDef.module && typeof tabDef.module === 'function') {
             (tabDef.module as Function)(tabId);
         } else {

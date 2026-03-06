@@ -105,7 +105,7 @@ export const accessControl = {
     applyClienteFilter(queryRef: any): any {
         const cliente = this.getClienteFilter();
         if (!cliente) return queryRef;
-        return queryRef.where('cliente', '==', cliente);
+        return query(queryRef, where('cliente', '==', cliente));
     },
 
     // For sidebar: which nav items to show

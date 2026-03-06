@@ -3293,3 +3293,196 @@ input:checked+.slider:before {
   border-color: rgba(0, 212, 255, 0.15);
   /* Accent with 15% opacity */
 }
+
+/* ============================================================
+   DATE RANGE PICKER CUSTOM DARK THEME
+   ============================================================ */
+.daterangepicker {
+  background-color: rgba(15, 23, 42, 0.95) !important;
+  border: 1px solid rgba(0, 212, 255, 0.2) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 212, 255, 0.1) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  color: var(--text-2) !important;
+  font-family: inherit !important;
+  z-index: 9999 !important;
+  width: auto !important;
+  padding: 0 !important;
+}
+
+.daterangepicker::before,
+.daterangepicker::after {
+  display: none !important;
+}
+
+.daterangepicker .drp-calendar {
+  display: inline-block !important;
+  max-width: none !important;
+  padding: 16px !important;
+}
+
+.daterangepicker .calendar-table {
+  background-color: transparent !important;
+  border: none !important;
+}
+
+.daterangepicker .calendar-table table {
+  border-collapse: separate !important;
+  border-spacing: 4px !important;
+  width: 100% !important;
+  margin: 0 !important;
+}
+
+.daterangepicker td,
+.daterangepicker th {
+  border-radius: 8px !important;
+  color: var(--text-1) !important;
+  min-width: 32px !important;
+  height: 32px !important;
+  text-align: center !important;
+  font-size: 0.85rem !important;
+  transition: all 0.2s ease !important;
+  border: none !important;
+}
+
+.daterangepicker th.month {
+  font-weight: 700 !important;
+  font-size: 0.95rem !important;
+  color: #fff !important;
+  padding: 8px 0 !important;
+  width: auto !important;
+  background-color: rgba(0, 212, 255, 0.1) !important;
+  border-radius: 8px !important;
+}
+
+.daterangepicker th.prev,
+.daterangepicker th.next {
+  color: var(--accent) !important;
+  cursor: pointer !important;
+  background-color: rgba(0, 212, 255, 0.1) !important;
+  border-radius: 8px !important;
+}
+
+.daterangepicker th.prev:hover,
+.daterangepicker th.next:hover {
+  background-color: rgba(0, 212, 255, 0.25) !important;
+  color: #fff !important;
+}
+
+.daterangepicker th {
+  color: var(--accent) !important;
+  font-size: 0.75rem !important;
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+  background-color: rgba(30, 41, 59, 1) !important;
+  /* Solid dark blue for contrast */
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.daterangepicker td.available:hover {
+  background-color: rgba(0, 212, 255, 0.15) !important;
+  color: #fff !important;
+}
+
+.daterangepicker td.in-range {
+  background-color: rgba(0, 212, 255, 0.1) !important;
+  border-radius: 4px !important;
+  color: #fff !important;
+}
+
+.daterangepicker td.active,
+.daterangepicker td.active:hover {
+  background-color: var(--accent) !important;
+  color: #000 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.6) !important;
+  border-radius: 8px !important;
+}
+
+.daterangepicker td.off,
+.daterangepicker td.off.in-range,
+.daterangepicker td.off.start-date,
+.daterangepicker td.off.end-date {
+  color: rgba(255, 255, 255, 0.15) !important;
+  background-color: transparent !important;
+}
+
+.daterangepicker .drp-buttons {
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  padding: 16px !important;
+  background-color: rgba(0, 0, 0, 0.2) !important;
+  clear: both !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+}
+
+.daterangepicker .drp-selected {
+  color: var(--text-2) !important;
+  font-size: 0.85rem !important;
+  margin-right: auto !important;
+  padding-right: 16px !important;
+}
+
+.daterangepicker .btn {
+  border-radius: 8px !important;
+  font-size: 0.85rem !important;
+  padding: 8px 16px !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+  margin-left: 8px !important;
+}
+
+.daterangepicker .btn-primary {
+  background-color: var(--accent) !important;
+  color: #000 !important;
+  border: none !important;
+}
+
+.daterangepicker .btn-primary:hover {
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.6) !important;
+  transform: translateY(-1px) !important;
+}
+
+.daterangepicker .btn-default {
+  background-color: transparent !important;
+  color: #fff !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+.daterangepicker .btn-default:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.daterangepicker select.monthselect,
+.daterangepicker select.yearselect {
+  background: rgba(15, 23, 42, 0.9) !important;
+  border: 1px solid rgba(0, 212, 255, 0.3) !important;
+  color: #fff !important;
+  border-radius: 6px !important;
+  padding: 4px 8px !important;
+  font-size: 0.9rem !important;
+  outline: none !important;
+  cursor: pointer !important;
+}
+
+.daterangepicker select.monthselect:focus,
+.daterangepicker select.yearselect:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.2) !important;
+}
+
+/* ============================================================
+   MAP TILE CUSTOM NEON COLORING
+   ============================================================ */
+.neo-green-map {
+  /* 
+   CartoDB Dark Matter is grayscale. 
+   Filter shifts grayscale towards green/cyan and brightens the roads.
+   Hue-rotate 160deg turns grays/blues into a neon green/cyan.
+  */
+  filter: sepia(100%) hue-rotate(120deg) saturate(400%) brightness(0.9) contrast(1.2) !important;
+}
