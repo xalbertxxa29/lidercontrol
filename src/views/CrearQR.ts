@@ -35,6 +35,11 @@ let selectedUnidad: string | null = null;
 let cachedClientes: string[] = [];
 let cachedUnidades: string[] = [];
 
+// Estado de selección historial
+let selectedFilterCliente: string | null = null;
+let selectedFilterUnidad: string | null = null;
+let filterUnidades: string[] = [];
+
 export async function initCrearQRView() {
   const container = document.getElementById('view-crear-qr');
   if (!container) return;
@@ -42,185 +47,224 @@ export async function initCrearQRView() {
   if (container.innerHTML.trim() !== '' && document.getElementById('qr-main-container')) return;
 
   container.innerHTML = `
-    <div class="page-head">
-        <div>
-            <h2>Generador de códigos QR</h2>
-            <h4 class="muted">Configuración de puntos de control para rondas</h4>
-        </div>
-        <button class="btn btn-secondary" id="btnDescargarPdfQRs">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16"><path d="M14 2H6a2 2 0 0 0-2 2v16h16V8l-6-6z"/><path d="M14 2v6h6"/><path d="M12 18v-6"/><path d="M9 15h6"/></svg>
-            Exportar Lista PDF
-        </button>
-    </div>
-
-    <div id="qr-main-container" class="grid-2" style="gap: 30px;">
-        <!-- Lado Izquierdo: Configuración -->
-        <div class="card card-pad">
-            <h3 class="mb-4">Configuración del Punto</h3>
-            <form id="formQR" class="form-grid">
-                
-                <div class="form-group full">
-                    <label>Cliente *</label>
-                    <div id="selectClienteBtn" class="selector-btn">
-                        <span id="labelCliente">Seleccionar Cliente...</span>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                    </div>
-                </div>
-
-                <div class="form-group full">
-                    <label>Unidad *</label>
-                    <div id="selectUnidadBtn" class="selector-btn disabled">
-                        <span id="labelUnidad">Seleccionar Cliente primero</span>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                    </div>
-                </div>
-
-                <div class="form-group full">
-                    <label>Nombre del Punto QR *</label>
-                    <input type="text" id="qrFormNombre" class="form-input" placeholder="Ej: Puerta Principal, Almacén A" required>
-                </div>
-
-                <div class="form-group full flex items-center gap-3 py-3" style="background:rgba(255,255,255,0.03); border-radius:10px; padding: 12px 15px;">
-                    <label class="switch" style="margin:0;">
-                        <input type="checkbox" id="qrFormReqPregunta">
-                        <span class="slider round"></span>
-                    </label>
-                    <label for="qrFormReqPregunta" style="margin:0; cursor:pointer; font-weight:500;">Requiere respuesta al escanear</label>
-                </div>
-
-                <div id="qrOpcionesPregunta" style="display:none; background:rgba(255,255,255,0.02); padding:20px; border-radius:12px; border:1px dashed rgba(255,255,255,0.1); margin-bottom:16px;" class="form-group full">
-                    <label class="mb-2 text-accent text-xs uppercase font-bold">Preguntas (Máximo 3)</label>
-                    <div id="qrQuestionsList" class="flex flex-column gap-2 mb-3">
-                        <!-- Preguntas dinámicas -->
-                    </div>
-                    <button type="button" class="btn btn-secondary btn-sm w-full" id="btnAddQuestion">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" class="mr-1"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                        Agregar Pregunta
-                    </button>
-                </div>
-
-                <div class="form-group full">
-                    <label>Tamaño del QR (Píxeles)</label>
-                    <div class="grid-2 gap-2">
-                        <div>
-                            <span class="text-[10px] muted uppercase">Ancho</span>
-                            <input type="number" id="qrWide" class="form-input" value="200">
-                        </div>
-                        <div>
-                            <span class="text-[10px] muted uppercase">Alto</span>
-                            <input type="number" id="qrHigh" class="form-input" value="200">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-group full">
-                    <label>Coordenadas (Geolocalización)</label>
-                    <div class="flex gap-2 mb-3">
-                        <input type="text" id="qrLat" class="form-input" placeholder="Latitud" readonly style="background:rgba(255,255,255,0.05)">
-                        <input type="text" id="qrLng" class="form-input" placeholder="Longitud" readonly style="background:rgba(255,255,255,0.05)">
-                    </div>
-                    <div id="qr-map-container" style="height:280px; border-radius:12px; overflow:hidden; border:1px solid rgba(255,255,255,0.05); margin-bottom:15px;"></div>
-                    <button type="button" class="btn btn-secondary w-full" id="btnGeoActualQR">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" class="mr-2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                        Usar ubicación actual
-                    </button>
-                </div>
-
-                <button type="button" class="btn btn-primary w-full py-4 mt-4 shadow-2xl" id="btnGenerarQR">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" class="mr-2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><rect x="7" y="7" width="3" height="3"></rect><rect x="14" y="7" width="3" height="3"></rect><rect x="7" y="14" width="3" height="3"></rect><path d="M14 14h3v3h-3z"></path></svg>
-                    VISUALIZAR Y GUARDAR QR
+    <div class="fade-in px-4 py-6">
+        <div class="g-flex g-items-center g-gap-4 g-mb-4">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" width="24" class="opacity-80">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><path d="M7 7h3v3H7zM14 7h3v3h-3zM7 14h3v3H7zM14 14h3v3h-3z"></path>
+            </svg>
+            <div>
+                <h2 class="text-2xl font-bold tracking-tight text-white m-0">Generador de códigos QR</h2>
+                <h4 class="text-xs muted uppercase tracking-widest font-medium opacity-60 m-0 mt-1">Configura puntos de control interactivos</h4>
+            </div>
+            <div class="ml-auto g-flex g-gap-2">
+                <button class="btn btn-secondary btn-sm" id="btnDescargarPdfQRs">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" class="mr-2"><path d="M14 2H6a2 2 0 0 0-2 2v16h16V8l-6-6z"/><path d="M14 2v6h6"/><path d="M12 18v-6"/><path d="M9 15h6"/></svg>
+                    Exportar Lista PDF
                 </button>
-            </form>
+            </div>
         </div>
 
-        <!-- Columna Derecha: Vista Previa -->
-        <div class="qr-preview-side sticky top-5">
-            <div class="qr-card-preview p-8 text-center flex flex-column items-center justify-center h-full min-h-[500px]" style="background:rgba(255,255,255,0.02); border-radius:24px; border:1px solid rgba(255,255,255,0.05);">
-                <div id="qrEmptyState" class="muted text-center max-w-[250px]">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" width="60" class="mb-4 opacity-20"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><path d="M7 7h3v3H7zM14 7h3v3h-3zM7 14h3v3H7zM14 14h3v3h-3z"></path></svg>
-                    <p>Completa la configuración para generar la vista previa del código QR</p>
-                </div>
-
-                <div id="qrFullPreview" style="display:none; width:100%">
-                    <h2 id="previewNombre" class="text-2xl font-bold mb-1 tracking-tight text-white">NOMBRE DEL PUNTO</h2>
-                    <p id="previewDetalle" class="muted text-sm mb-8 uppercase tracking-widest opacity-60">CLIENTE | UNIDAD</p>
+        <div id="qr-main-container" class="ronda-main-grid">
+            <!-- Lado Izquierdo: Formulario de Pasos -->
+            <div class="ronda-form-side">
+                <form id="formQR" autocomplete="off">
                     
-                    <div class="qr-preview-box mx-auto shadow-2xl" style="background:white; padding:25px; border-radius:24px; width:fit-content; border:10px solid #f8fafc">
-                        <canvas id="qrCanvas"></canvas>
+                    <!-- PASO 1: UBICACIÓN -->
+                    <div class="step-container-modern fade-in">
+                        <div class="step-indicator-modern">
+                            <span class="step-badge">Paso 1</span>
+                            <span class="step-title">Ubicación Cliente</span>
+                        </div>
+                        <div class="g-grid g-cols-2 g-gap-4">
+                            <div>
+                                <label class="text-[10px] muted uppercase font-bold g-mb-1 block">Cliente *</label>
+                                <div id="selectClienteBtn" class="custom-select-button">
+                                    <span id="labelCliente">Seleccionar Cliente...</span>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" class="opacity-50"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-[10px] muted uppercase font-bold g-mb-1 block">Unidad *</label>
+                                <div id="selectUnidadBtn" class="custom-select-button disabled">
+                                    <span id="labelUnidad">Seleccionar Cliente primero</span>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" class="opacity-50"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="mt-10 flex gap-3 justify-center">
-                        <button id="btnConfirmarGuardarQR" class="btn btn-primary px-8 py-4" style="display:none; border-radius:15px; background:linear-gradient(135deg, var(--accent), #1e40af)">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" class="mr-2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                            Confirmar Registro
+                    <!-- PASO 2: INFORMACIÓN Y PREGUNTAS -->
+                    <div class="step-container-modern fade-in">
+                        <div class="step-indicator-modern">
+                            <span class="step-badge">Paso 2</span>
+                            <span class="step-title">Información del QR</span>
+                        </div>
+                        <div class="g-mb-4">
+                            <label class="text-[10px] muted uppercase font-bold g-mb-1 block">Nombre del Punto QR *</label>
+                            <input type="text" id="qrFormNombre" class="custom-input-modern" placeholder="Ej: Puerta Principal, Almacén A" required>
+                        </div>
+
+                        <div class="flex items-center gap-3 py-3 px-4 mb-4" style="background:rgba(0, 240, 255, 0.05); border:1px solid var(--accent); border-radius:12px;">
+                            <label class="switch" style="margin:0;">
+                                <input type="checkbox" id="qrFormReqPregunta">
+                                <span class="slider round" style="background-color: var(--bg); border: 1px solid rgba(255,255,255,0.2);"></span>
+                            </label>
+                            <label for="qrFormReqPregunta" class="mb-0 cursor-pointer font-bold text-sm text-white">¿Requiere respuesta al escanear?</label>
+                        </div>
+
+                        <div id="qrOpcionesPregunta" style="display:none; background:rgba(255,255,255,0.02); padding:20px; border-radius:12px; border:1px dashed rgba(255,255,255,0.15);" class="mb-2 transition-all">
+                            <label class="mb-3 text-accent text-xs uppercase font-bold flex items-center gap-2">
+                                <svg width="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                                Preguntas (Máximo 3)
+                            </label>
+                            <div id="qrQuestionsList" class="flex flex-column gap-3 mb-4">
+                                <!-- Preguntas dinámicas inyectadas por JS -->
+                            </div>
+                            <button type="button" class="btn btn-secondary btn-sm w-full" id="btnAddQuestion" style="background: rgba(255,255,255,0.05)">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" class="mr-1"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                Añadir Pregunta
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- PASO 3: GEOLOCALIZACIÓN Y TAMAÑO -->
+                    <div class="step-container-modern fade-in">
+                        <div class="step-indicator-modern">
+                            <span class="step-badge">Paso 3</span>
+                            <span class="step-title">Geolocalización & Formato</span>
+                        </div>
+                        
+                        <div class="g-mb-4">
+                            <div class="flex gap-2 mb-3">
+                                <input type="text" id="qrLat" class="custom-input-modern text-xs text-center" placeholder="Latitud" readonly>
+                                <input type="text" id="qrLng" class="custom-input-modern text-xs text-center" placeholder="Longitud" readonly>
+                                <button type="button" class="btn btn-secondary px-3" id="btnGeoActualQR" title="Ubicación Actual">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" width="16"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                                </button>
+                            </div>
+                            <div id="qr-map-container" style="height:220px; border-radius:12px; border:1px solid rgba(255,255,255,0.15); box-shadow: 0 4px 15px rgba(0,0,0,0.3); overflow:hidden;"></div>
+                        </div>
+
+                        <div class="g-grid g-cols-2 g-gap-4">
+                            <div>
+                                <label class="text-[10px] muted uppercase font-bold g-mb-1 block">Ancho Impresión (px)</label>
+                                <input type="number" id="qrWide" class="custom-input-modern" value="200">
+                            </div>
+                            <div>
+                                <label class="text-[10px] muted uppercase font-bold g-mb-1 block">Alto Impresión (px)</label>
+                                <input type="number" id="qrHigh" class="custom-input-modern" value="200">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="g-flex g-gap-4 g-mt-6">
+                        <button type="button" class="btn btn-secondary px-6" id="btnLimpiarFormQR">Limpiar</button>
+                        <button type="button" class="btn btn-primary flex-1 shadow-lg h-[48px]" style="background:var(--accent); color:var(--bg); font-weight:800; font-size:14px; letter-spacing:1px;" id="btnGenerarQR">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" class="mr-2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><rect x="7" y="7" width="3" height="3"></rect><rect x="14" y="7" width="3" height="3"></rect><rect x="7" y="14" width="3" height="3"></rect><path d="M14 14h3v3h-3z"></path></svg>
+                            GENERAR VISTA PREVIA
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Columna Derecha: Vista Previa y Registro -->
+            <div class="ronda-qr-side">
+                <div class="step-container-modern sticky top-5" style="border-width: 2px; border-color: rgba(255,255,255,0.08); background:rgba(0,0,0,0.2);">
+                    <div class="qr-sidebar-header g-mb-4">
+                        <div class="g-flex g-items-center g-gap-3">
+                            <div class="qr-checkbox-modern" style="border-radius: 4px; border:none; background: var(--accent);">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--bg)" stroke-width="4"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            </div>
+                            <h3 class="text-sm font-bold text-white tracking-wide">Vista Previa Registrada</h3>
+                        </div>
+                    </div>
+
+                    <div class="qr-card-preview p-4 flex flex-col items-center justify-center min-h-[350px]">
+                        <div id="qrEmptyState" class="muted text-center max-w-[200px] slide-up">
+                            <div class="text-5xl mb-4 opacity-30 grayscale">🧾</div>
+                            <p class="text-[10px] uppercase tracking-widest font-bold">Completa los 3 pasos para observar la previsualización</p>
+                        </div>
+
+                        <div id="qrFullPreview" style="display:none; width:100%" class="fade-in">
+                            <h2 id="previewNombre" class="text-xl font-bold mb-0 text-white text-center">NOMBRE PUNTO</h2>
+                            <p id="previewDetalle" class="muted text-[10px] mb-6 uppercase tracking-widest opacity-80 text-center">CLIENTE | UNIDAD</p>
+                            
+                            <div class="qr-preview-box mx-auto shadow-2xl" style="background:white; padding:15px; border-radius:18px; width:fit-content; border:6px solid #f8fafc; transition:transform 0.3s ease;">
+                                <canvas id="qrCanvas"></canvas>
+                            </div>
+
+                            <button id="btnConfirmarGuardarQR" class="btn btn-primary w-full mt-8 h-[48px]" style="background:linear-gradient(135deg, #10b981, #059669); border:none; box-shadow:0 10px 20px rgba(16, 185, 129, 0.3);">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" class="mr-2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                                GUARDAR PUNTO QR
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección Historial -->
+        <div class="historial-title-area mt-12">
+            <div class="g-flex g-justify-between g-items-center g-mb-4">
+                <div>
+                    <h3 class="text-lg font-bold text-white">Directorio de Códigos QR</h3>
+                    <p class="text-[10px] muted uppercase tracking-widest font-medium opacity-50">Gestiona y exporta los códigos QR generados previamente</p>
+                </div>
+                <button class="btn btn-secondary btn-sm" id="btnDescargarPdfQRsSec">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" class="mr-2"><path d="M21 15v4a2 2 0 0 1-2-2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    Exportar Lista
+                </button>
+            </div>
+            
+            <div class="filters-bar p-4 mb-6" style="background:rgba(255,255,255,0.04); border-radius:15px; border:1px solid rgba(255,255,255,0.15)">
+                <div class="g-flex g-gap-4 g-items-end g-w-full">
+                    <div class="filter-group flex-1">
+                        <label class="text-[10px] uppercase font-bold muted mb-1 block">Filtrar por Cliente</label>
+                        <div id="filterClienteBtn" class="selector-btn text-xs" style="background: rgba(15, 23, 42, 0.4); border:1px solid rgba(255,255,255,0.2);">
+                            <span id="labelFilterCliente">Todos los Clientes</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </div>
+                    </div>
+                    <div class="filter-group flex-1">
+                        <label class="text-[10px] uppercase font-bold muted mb-1 block">Filtrar por Unidad</label>
+                        <div id="filterUnidadBtn" class="selector-btn text-xs disabled" style="background: rgba(15, 23, 42, 0.4); border:1px solid rgba(255,255,255,0.2);">
+                            <span id="labelFilterUnidad">Todas las Unidades</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </div>
+                    </div>
+                    <div class="g-flex g-gap-2">
+                        <button class="btn btn-primary text-sm px-6 h-[42px]" id="btnBuscarQRs">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" class="mr-2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            Buscar
+                        </button>
+                        <button class="btn btn-secondary text-sm px-4 h-[42px]" id="btnLimpiarFiltros">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16"><path d="M23 4v6h-6"></path><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
                         </button>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!-- Sección de Registrados: Grid de Cards -->
-    <div class="section shadow-lg mt-10">
-        <div class="flex justify-between items-center mb-6">
-            <div class="flex items-center gap-3">
-                <div class="p-2 bg-blue-500 rounded-lg">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="20"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+            
+            <div id="qrCardsGrid" class="historial-grid-modern">
+                <div class="col-span-full py-12 text-center text-muted border-2 border-dashed border-white/5 rounded-2xl">
+                    Selecciona filtros y haz clic en "Buscar" para listar
                 </div>
-                <h2 class="text-xl font-bold">📋 QRs Generados</h2>
-            </div>
-            <button class="btn btn-secondary text-sm px-5" id="btnDescargarPdfQRsSec">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" class="mr-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                Exportar Lista PDF
-            </button>
-        </div>
-
-        <div class="filters-bar p-4 mb-6" style="background:rgba(255,255,255,0.02); border-radius:15px; border:1px solid rgba(255,255,255,0.05)">
-            <div class="filter-group">
-                <label class="text-[10px] uppercase font-bold muted mb-1 block">Filtrar por Cliente</label>
-                <div id="filterClienteBtn" class="selector-btn text-xs">
-                    <span id="labelFilterCliente">Todos los Clientes</span>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </div>
-            </div>
-            <div class="filter-group">
-                <label class="text-[10px] uppercase font-bold muted mb-1 block">Filtrar por Unidad</label>
-                <div id="filterUnidadBtn" class="selector-btn text-xs disabled">
-                    <span id="labelFilterUnidad">Todas las Unidades</span>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </div>
-            </div>
-            <div class="flex gap-2">
-                <button class="btn btn-primary text-sm px-6 h-[42px]" id="btnBuscarQRs">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" class="mr-2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    Buscar
-                </button>
-                <button class="btn btn-secondary text-sm px-4 h-[42px]" id="btnLimpiarFiltros">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16"><path d="M23 4v6h-6"></path><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
-                </button>
-            </div>
-        </div>
-
-        <div id="qrCardsGrid" class="qr-grid">
-            <div class="text-center py-12 muted w-full" style="grid-column: 1/-1;">
-                <p>Selecciona filtros y haz clic en "Buscar" para ver los QRs generados</p>
             </div>
         </div>
     </div>
 
-    <!-- Modal de Selección Genérico -->
-    <div class="modal" id="selectorModal" aria-hidden="true">
-        <div class="modal-box max-w-sm">
-            <h3 id="selectorTitle" class="mb-4">Seleccionar</h3>
-            <div class="search-box mb-4">
-                <input type="text" id="selectorSearch" placeholder="Buscar..." class="form-input">
+    <!-- Modal de Selección Genérico para QR -->
+    <div class="modal selector-modal" id="selectorModalQR" aria-hidden="true">
+        <div class="modal-box glass-card max-w-sm" style="border-color: rgba(0, 240, 255, 0.2);">
+            <div class="g-flex g-items-center g-justify-between g-mb-4">
+                <h3 id="selectorTitleQR" class="text-white font-bold text-lg">Seleccionar</h3>
+                <button type="button" class="btn btn-sm btn-secondary p-1" id="selectorCancelBtnQR">
+                   ✕
+                </button>
             </div>
-            <div id="selectorList" class="list-group" style="max-height: 350px; overflow-y: auto;">
-                <!-- Lista inyectada -->
+            <div class="search-box g-mb-4 relative">
+                <input type="text" id="selectorSearchQR" placeholder="Escribe para buscar..." class="custom-input-modern g-w-full">
             </div>
-            <div class="modal-actions mt-4">
-                <button type="button" class="btn secondary w-full" id="selectorCancel">Cerrar</button>
-            </div>
+            <div id="selectorListQR" class="selector-list-container custom-scrollbar"></div>
         </div>
     </div>
 
@@ -259,11 +303,12 @@ async function preloadData() {
   } catch (e) { console.error(e); }
 }
 
+// Helpers para Selectores
 async function openSelectorModal(title: string, items: string[], onSelect: (val: string) => void) {
-  const modal = document.getElementById('selectorModal')!;
-  const modalTitle = document.getElementById('selectorTitle')!;
-  const listGroup = document.getElementById('selectorList')!;
-  const searchInput = document.getElementById('selectorSearch') as HTMLInputElement;
+  const modal = document.getElementById('selectorModalQR')!;
+  const modalTitle = document.getElementById('selectorTitleQR')!;
+  const listGroup = document.getElementById('selectorListQR')!;
+  const searchInput = document.getElementById('selectorSearchQR') as HTMLInputElement;
 
   modalTitle.textContent = title;
   searchInput.value = '';
@@ -296,7 +341,7 @@ async function openSelectorModal(title: string, items: string[], onSelect: (val:
   modal.classList.add('show');
   setTimeout(() => searchInput.focus(), 100);
 
-  const btnCancel = document.getElementById('selectorCancel');
+  const btnCancel = document.getElementById('selectorCancelBtnQR');
   if (btnCancel) btnCancel.onclick = () => modal.classList.remove('show');
 }
 
@@ -383,13 +428,20 @@ function setupEventListeners() {
     });
   };
 
-  btnFilterUnidad.onclick = () => {
+  btnFilterUnidad.addEventListener('click', () => {
     if (!selectedFilterCliente) return;
+
     openSelectorModal(`Unidades de ${selectedFilterCliente}`, ['Todas las Unidades', ...filterUnidades], (val) => {
-      selectedFilterUnidad = val === 'Todas las Unidades' ? null : val;
-      labelFilterUnidad.textContent = val;
+      if (val === 'Todas las Unidades') {
+        selectedFilterUnidad = null;
+        labelFilterUnidad.textContent = 'Todas las Unidades';
+      } else {
+        selectedFilterUnidad = val;
+        labelFilterUnidad.textContent = val;
+        fetchQRs(selectedFilterCliente, selectedFilterUnidad); // AUTO-LOAD
+      }
     });
-  };
+  });
 
   async function loadFilterUnidades(clienteId: string) {
     try {
@@ -561,7 +613,7 @@ function setupEventListeners() {
         chkPregunta.checked = false;
         if (divPregunta) divPregunta.style.display = 'none';
 
-        fetchQRs(selectedFilterCliente, selectedFilterUnidad);
+        // fetchQRs(selectedFilterCliente, selectedFilterUnidad); // REMOVED BY USER REQUEST
       } catch (e) { UI.toast('Error al registrar QR', 'error'); }
       finally { UI.hideLoader(); }
     };
@@ -663,37 +715,55 @@ function renderQRCards() {
     const card = document.createElement('div');
     card.className = 'qr-card';
 
-    const canvasContainer = document.createElement('div');
-    canvasContainer.className = 'qr-card-canvas';
-    const canvas = document.createElement('canvas');
-    canvasContainer.appendChild(canvas);
-
     card.innerHTML = `
-            <div class="qr-card-canvas"></div>
-            <div class="qr-card-info">
-                <div class="qr-card-title">${qr.nombre || 'Sin Nombre'}</div>
-                <div class="qr-card-subtitle">${qr.cliente || '?'} - ${qr.unidad || '?'}</div>
-                <div class="text-[10px] muted mt-1">
-                    ${qr.latitude ? qr.latitude.toFixed(4) : '0.0000'}, ${qr.longitude ? qr.longitude.toFixed(4) : '0.0000'}
-                </div>
-                ${qr.requireQuestion === 'si' ? '<span class="badge badge-info text-[9px] mt-1">REQUIERE RESPUESTA</span>' : ''}
-            </div>
-            <div class="qr-card-actions">
-                <button class="btn btn-secondary text-[10px] py-2 btn-download-qr" data-id="${qr.id}">Descargar</button>
-                <button class="btn btn-del-qr text-[10px] py-2" data-id="${qr.id}" style="background:#fee2e2; color:#ef4444; border:none">Eliminar</button>
-            </div>
-        `;
-
-    const canvasDiv = card.querySelector('.qr-card-canvas')!;
-    canvasDiv.appendChild(canvas);
-
-    QRCode.toCanvas(canvas, qr.id, {
-      width: 140,
-      margin: 1,
-      color: { dark: '#1e293b', light: '#ffffff' }
-    });
+      <!-- Header -->
+      <div class="ronda-card-header g-flex g-justify-between g-items-start">
+        <div style="max-width: 75%">
+          ${(qr.requireQuestion === true || qr.requireQuestion === 'si') ? '<div class="step-badge mb-2" style="background:var(--accent); font-size:8px; display:inline-block;">PREGUNTA ACTIVA</div>' : ''}
+          <h4 class="text-white font-bold tracking-wide text-sm m-0" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+            ${qr.nombre || 'Sin Nombre'}
+          </h4>
+          <p class="muted text-[10px] m-0 uppercase mt-1 opacity-70 truncate">
+            ${qr.cliente || '?'} | ${qr.unidad || '?'}
+          </p>
+        </div>
+      </div>
+      
+      <!-- Body (Canvas) -->
+      <div class="ronda-card-body flex justify-center items-center py-6" style="background:rgba(0,0,0,0.2)">
+        <div class="bg-white p-3 rounded-xl shadow-lg" style="border:4px solid #f8fafc">
+           <canvas class="qr-card-canvas-element"></canvas>
+        </div>
+      </div>
+      
+      <!-- Footer -->
+      <div class="ronda-card-footer g-flex g-justify-between g-items-center">
+        <div class="text-[9px] muted uppercase tracking-widest leading-relaxed">
+          <span class="block text-white mb-0.5">DIMENSIÓN: ${qr.width || 200}x${qr.height || 200}</span>
+          <span>LAT: ${qr.latitude?.toFixed(4) || 'N/A'}</span><br>
+          <span>LNG: ${qr.longitude?.toFixed(4) || 'N/A'}</span>
+        </div>
+        <div class="g-flex g-gap-2">
+          <button class="btn btn-primary btn-sm px-3 btn-download-qr" title="Descargar QR">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14"><path d="M21 15v4a2 2 0 0 1-2-2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          </button>
+          <button class="btn btn-secondary btn-sm px-3 btn-del-qr" style="background:rgba(239, 68, 68, 0.1); color:#ef4444; border:1px solid rgba(239, 68, 68, 0.2);" title="Eliminar QR">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          </button>
+        </div>
+      </div>
+    `;
 
     grid.appendChild(card);
+
+    const canvas = card.querySelector('.qr-card-canvas-element') as HTMLCanvasElement;
+    if (canvas) {
+      QRCode.toCanvas(canvas, qr.id, {
+        width: 140,
+        margin: 1,
+        color: { dark: '#1e293b', light: '#ffffff' }
+      });
+    }
 
     (card.querySelector('.btn-download-qr') as HTMLElement).onclick = () => {
       downloadSingleQR(qr);
@@ -705,7 +775,7 @@ function renderQRCards() {
         try {
           await deleteDoc(doc(db, COLLECTIONS.QR, qr.id));
           UI.toast('QR eliminado');
-          fetchQRs();
+          fetchQRs(selectedFilterCliente, selectedFilterUnidad);
         } catch (e) { UI.toast('Error al borrar', 'error'); }
         finally { UI.hideLoader(); }
       }, 'danger');
