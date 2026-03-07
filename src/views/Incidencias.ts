@@ -321,8 +321,8 @@ function renderIncidencias() {
 
 function openEditModal(inc: any) {
   const modalHTML = `
-    <div id="modalEditInc" class="modal-overlay" style="display:flex; z-index:1100;">
-      <div class="modal-content" style="width:90%; max-width:600px;">
+    <div id="modalEditInc" class="modal-overlay" style="display:flex; z-index:1100; position:fixed; top:0; left:0; right:0; bottom:0; align-items:center; justify-content:center; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px);">
+      <div class="modal-content card" style="width:90%; max-width:600px; max-height:90vh; overflow-y:auto; padding:24px;">
         <div class="modal-header">
           <h3>Editar Incidencia</h3>
           <button class="btn-close-modal" id="btnCloseEditInc">✕</button>
@@ -442,57 +442,262 @@ function exportToExcel() {
   UI.toast('Exportando Excel...');
 }
 
+async function urlToBase64(url: string): Promise<string | null> {
+  try {
+    let urlFinal = url;
+    if (!urlFinal.includes('alt=')) {
+      urlFinal = urlFinal + (urlFinal.includes('?') ? '&' : '?') + 'alt=media';
+    }
+
+    // Usar un proxy CORS público para evitar el bloqueo del Canvas en el navegador al generar PDFs
+    const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(urlFinal);
+
+    let response;
+    try {
+      response = await fetch(proxyUrl);
+    } catch (e) {
+      // Fallback
+      response = await fetch(urlFinal, { mode: 'cors' });
+    }
+
+    if (!response || !response.ok) {
+      const fallbackRes = await fetch(urlFinal, { mode: 'cors' });
+      if (!fallbackRes.ok) return null;
+      response = fallbackRes;
+    }
+
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.warn('Error fetching image for base64', error);
+    return null;
+  }
+}
+
 async function generatePDF(inc: any) {
   UI.showLoader('Generando PDF...', 'Construyendo reporte', 30);
 
   try {
-    const docDefinition: any = {
-      content: [
-        { text: 'REPORTE DE INCIDENCIA', style: 'header' },
-        { text: `ID: ${inc.id}`, style: 'subheader' },
-        { text: `Fecha: ${inc.dateObj.toLocaleString('es-PE')}`, margin: [0, 0, 0, 20] },
+    let fechaSoloFecha = 'N/A';
+    if (inc.dateObj) {
+      fechaSoloFecha = inc.dateObj.toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    }
 
+    // Cargar foto Base64 asíncronamente
+    let fotoDataUrl: string | null = null;
+    if (inc.fotoURL) {
+      UI.showLoader('Generando PDF...', 'Descargando evidencia fotográfica...', 40);
+      fotoDataUrl = await urlToBase64(inc.fotoURL);
+    }
+
+    const colorPrimario = '#2c5aa0';
+    const colorSecundario = '#c41e3a';
+    const content: any[] = [];
+
+    // ENCABEZADO CON NÚMERO Y FECHA
+    content.push({
+      columns: [
+        { text: `REPORTE Nº ${inc.id?.toString().slice(-3) || '---'}`, style: 'reportNumber', width: '60%' },
         {
-          table: {
-            widths: ['30%', '70%'],
-            body: [
-              [{ text: 'Cliente', bold: true }, inc.cliente || ''],
-              [{ text: 'Unidad', bold: true }, inc.unidad || ''],
-              [{ text: 'Categoría', bold: true }, inc.tipoIncidente || ''],
-              [{ text: 'Nivel de Riesgo', bold: true }, inc.Nivelderiesgo || ''],
-              [{ text: 'Estado', bold: true }, inc.estado || ''],
-              [{ text: 'Registrado por', bold: true }, inc.registradoPor || ''],
-              [{ text: 'Puesto', bold: true }, inc.puesto || ''],
-              [{ text: 'Supervisor', bold: true }, inc.supervisor || ''],
-            ]
-          }
-        },
-
-        { text: 'Comentarios', style: 'sectionHeader', margin: [0, 20, 0, 5] },
-        { text: inc.comentario || 'Sin comentarios.', margin: [0, 0, 0, 10] },
-
-        { text: 'Comentario de Cierre', style: 'sectionHeader', margin: [0, 10, 0, 5] },
-        { text: inc.comentarioCierre || 'Sin comentarios de cierre.', margin: [0, 0, 0, 10] },
+          stack: [
+            { text: 'Fecha:', fontSize: 10, bold: true, color: colorPrimario, alignment: 'right' },
+            { text: fechaSoloFecha, fontSize: 11, bold: true, alignment: 'right' }
+          ],
+          width: '40%'
+        }
       ],
+      margin: [0, 0, 0, 15]
+    });
+
+    // LÍNEA SEPARADORA
+    content.push({ canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 2, lineColor: colorPrimario }], margin: [0, 0, 0, 12] });
+
+    // DATOS DEL REPORTE (TIPO, CLIENTE, RIESGO, UNIDAD)
+    content.push({
+      table: {
+        widths: ['25%', '25%', '25%', '25%'],
+        body: [
+          [
+            { text: 'Tipo de Incidente:', bold: true, color: colorPrimario, fontSize: 10 },
+            { text: inc.tipoIncidente || '-', fontSize: 10 },
+            { text: 'Nivel de Riesgo:', bold: true, color: colorPrimario, fontSize: 10 },
+            { text: inc.Nivelderiesgo || '-', bold: true, color: colorSecundario, fontSize: 11 }
+          ],
+          [
+            { text: 'Cliente:', bold: true, color: colorPrimario, fontSize: 10 },
+            { text: inc.cliente || '-', fontSize: 10 },
+            { text: 'Unidad/Sede:', bold: true, color: colorPrimario, fontSize: 10 },
+            { text: inc.unidad || '-', fontSize: 10 }
+          ]
+        ]
+      },
+      layout: {
+        hLineWidth: (i: number) => i === 0 ? 1 : 0.5,
+        vLineWidth: () => 0.5,
+        hLineColor: () => '#ddd',
+        vLineColor: () => '#ddd',
+        paddingLeft: () => 8,
+        paddingRight: () => 8,
+        paddingTop: () => 6,
+        paddingBottom: () => 6
+      },
+      margin: [0, 0, 0, 12]
+    });
+
+    // SECCIÓN: DETALLE DEL INCIDENTE
+    content.push({ text: 'DETALLE DEL INCIDENTE', style: 'sectionTitle', margin: [0, 0, 0, 8] });
+    content.push({
+      table: {
+        widths: ['100%'],
+        body: [
+          [{ text: inc.detalleIncidente || inc.comentario || 'Sin detalles registrados', alignment: 'left', fontSize: 10, margin: [5, 5, 5, 5] }]
+        ]
+      },
+      layout: {
+        hLineWidth: () => 1,
+        vLineWidth: () => 1,
+        hLineColor: () => '#bbb',
+        vLineColor: () => '#bbb',
+        paddingLeft: () => 10,
+        paddingRight: () => 10,
+        paddingTop: () => 8,
+        paddingBottom: () => 8
+      },
+      margin: [0, 0, 0, 12]
+    });
+
+    // INFORMACIÓN DEL REGISTRO
+    content.push({
+      table: {
+        widths: ['25%', '25%', '25%', '25%'],
+        body: [
+          [
+            { text: 'Reportado por:', bold: true, color: colorPrimario, fontSize: 9 },
+            { text: inc.registradoPor || '-', fontSize: 9 },
+            { text: 'Puesto:', bold: true, color: colorPrimario, fontSize: 9 },
+            { text: inc.puesto || '-', fontSize: 9 }
+          ],
+          [
+            { text: 'Estado:', bold: true, color: colorPrimario, fontSize: 9 },
+            { text: inc.estado || '-', fontSize: 9 },
+            { text: 'Supervisor:', bold: true, color: colorPrimario, fontSize: 9 },
+            { text: inc.supervisor || '-', fontSize: 9 }
+          ]
+        ]
+      },
+      layout: {
+        hLineWidth: () => 0.5,
+        vLineWidth: () => 0.5,
+        hLineColor: () => '#ddd',
+        vLineColor: () => '#ddd',
+        paddingLeft: () => 6,
+        paddingRight: () => 6,
+        paddingTop: () => 5,
+        paddingBottom: () => 5
+      },
+      margin: [0, 0, 0, 12]
+    });
+
+    // SECCIÓN: EVIDENCIA/COMENTARIOS DE CIERRE
+    if (inc.comentarioCierre) {
+      content.push({ text: 'COMENTARIO DE CIERRE:', style: 'sectionTitle', margin: [0, 15, 0, 8] });
+      content.push({
+        table: {
+          widths: ['100%'],
+          body: [
+            [{ text: inc.comentarioCierre, alignment: 'left', fontSize: 10 }]
+          ]
+        },
+        layout: {
+          hLineWidth: () => 1,
+          vLineWidth: () => 1,
+          hLineColor: () => '#bbb',
+          vLineColor: () => '#bbb',
+          paddingLeft: () => 10,
+          paddingRight: () => 10,
+          paddingTop: () => 8,
+          paddingBottom: () => 8
+        },
+        margin: [0, 0, 0, 15]
+      });
+    }
+
+    // Agregar foto si existe
+    if (fotoDataUrl) {
+      content.push({ text: 'FOTOGRAFÍA DE EVIDENCIA:', style: 'sectionTitle', margin: [0, 15, 0, 8] });
+      content.push({
+        image: fotoDataUrl,
+        width: 250,
+        alignment: 'center',
+        margin: [0, 0, 0, 20]
+      });
+    } else if (inc.fotoURL) {
+      // Si no se pudo descargar pero existe URL, mostrar texto con el link
+      content.push({ text: 'FOTOGRAFÍA DE EVIDENCIA:', style: 'sectionTitle', margin: [0, 15, 0, 8] });
+      content.push({
+        text: '(No se pudo descargar la imagen por políticas CORS o error de red)',
+        fontSize: 9,
+        color: '#ff0000',
+        alignment: 'center',
+        margin: [0, 0, 0, 20],
+        italics: true
+      });
+    }
+
+    // FIRMAS
+    content.push({ text: '\n\n' });
+    content.push({
+      table: {
+        widths: ['50%', '50%'],
+        body: [
+          [
+            { text: '________________________________', alignment: 'center', fontSize: 9, margin: [0, 10, 0, 0] },
+            { text: '________________________________', alignment: 'center', fontSize: 9, margin: [0, 10, 0, 0] }
+          ],
+          [
+            { text: `Firma: ${inc.registradoPor || ''}`, alignment: 'center', fontSize: 9, margin: [0, 5, 0, 0] },
+            { text: `Supervisor: ${inc.supervisor || ''}`, alignment: 'center', fontSize: 9, margin: [0, 5, 0, 0] }
+          ],
+          [
+            { text: 'Reportado por', alignment: 'center', fontSize: 8, italics: true, color: '#666' },
+            { text: 'Supervisor de Seguridad', alignment: 'center', fontSize: 8, italics: true, color: '#666' }
+          ]
+        ]
+      },
+      layout: {
+        hLineWidth: () => 0,
+        vLineWidth: () => 0,
+      }
+    });
+
+    const docDefinition: any = {
+      pageSize: 'A4',
+      pageMargins: [40, 40, 40, 40],
+      content: content,
       styles: {
-        header: { fontSize: 18, bold: true, color: '#2c5aa0', alignment: 'center', margin: [0, 0, 0, 5] },
-        subheader: { fontSize: 10, color: '#666', alignment: 'center', margin: [0, 0, 0, 20] },
-        sectionHeader: { fontSize: 12, bold: true, color: '#2c5aa0', border: [0, 0, 0, 1] }
+        reportNumber: {
+          fontSize: 20,
+          bold: true,
+          color: colorSecundario,
+          margin: [0, 5, 0, 5]
+        },
+        sectionTitle: {
+          fontSize: 11,
+          bold: true,
+          color: '#fff',
+          fillColor: colorPrimario,
+          alignment: 'left',
+          margin: [0, 8, 0, 8]
+        }
       }
     };
 
-    if (inc.fotoURL) {
-      try {
-        // El navegador puede bloquear la carga de imágenes externas por CORS en pdfmake.
-        // Intentamos cargarla si es posible.
-        docDefinition.content.push({ text: 'Evidencia Fotográfica', style: 'sectionHeader', margin: [0, 20, 0, 10] });
-        docDefinition.content.push({ image: inc.fotoURL, width: 400, alignment: 'center' });
-      } catch (e) {
-        docDefinition.content.push({ text: '(No se pudo cargar la imagen en el PDF)', color: 'red', margin: [0, 10, 0, 0] });
-      }
-    }
-
-    pdfMake.createPdf(docDefinition).download(`Incidencia_${inc.id.slice(-6)}.pdf`);
+    pdfMake.createPdf(docDefinition).download(`Reporte_Incidencia_${inc.id || Date.now()}.pdf`);
     UI.toast('Reporte PDF descargado');
   } catch (err) {
     console.error(err);
