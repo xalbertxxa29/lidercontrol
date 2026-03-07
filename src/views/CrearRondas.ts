@@ -6,7 +6,7 @@ import { masterCache } from '../cache-service';
 const COLLECTIONS = {
   CLIENT_UNITS: 'CLIENTE_UNIDAD',
   QR: 'QR_CODES',
-  RONDAS_CONFIG: 'RONDAS_CONFIGURADAS'
+  RONDAS_CONFIG: 'Rondas_QR'
 };
 
 let cachedClientes: string[] = [];
@@ -403,29 +403,69 @@ function setupEventListeners() {
     e.preventDefault();
     if (!selectedCliente || !selectedUnidad) return UI.toast('Seleccione cliente y unidad', 'warning');
 
-    const selectedQRs = Array.from(document.querySelectorAll('.qr-check:checked')).map((chk: any) => ({
-      id: chk.value,
-      nombre: chk.dataset.name
-    }));
-
-    if (selectedQRs.length === 0) return UI.toast('Seleccione al menos un punto QR', 'warning');
-
     UI.showLoader('Guardando ronda...');
     try {
+      const selectedQRs = [];
+      const checkboxes = document.querySelectorAll('.qr-check:checked');
+      for (const chk of Array.from(checkboxes)) {
+        const qrId = (chk as HTMLInputElement).value;
+        const nombre = (chk as HTMLElement).dataset.name;
+
+        // Cargar detalles del QR para matchear lógica de questions
+        const qrDoc = await getDocs(query(collection(db, COLLECTIONS.QR), where('__name__', '==', qrId)));
+        let requireQuestion = "no";
+        let questions: any[] = [];
+
+        if (!qrDoc.empty) {
+          const qrData = qrDoc.docs[0].data();
+          requireQuestion = qrData.requireQuestion || "no";
+          questions = qrData.questions || [];
+        }
+
+        selectedQRs.push({
+          qrId: qrId,
+          nombre: nombre,
+          requireQuestion: requireQuestion,
+          questions: questions
+        });
+      }
+
+      if (selectedQRs.length === 0) {
+        UI.hideLoader();
+        return UI.toast('Seleccione al menos un punto QR', 'warning');
+      }
+
+      const rawFrecuencia = (document.getElementById('rondaFrecuenciaSelect') as HTMLSelectElement).value;
+      const frecuencia = rawFrecuencia === 'DIARIA' ? 'diaria' : rawFrecuencia === 'SEMANAL' ? 'semanal' : 'dias-especificos';
+
+      // Lógica de diasConfig para igualar webantigua
+      let diasConfig: any = null;
+      if (frecuencia === 'semanal') {
+        const dSemanales = Array.from(document.querySelectorAll('input[name="rondaDiasSemana"]:checked')).map((c: any) => c.value);
+        if (dSemanales.length > 0) diasConfig = dSemanales;
+      }
+
+      const docId = `ronda_${Date.now()}`;
       const data = {
+        id: docId,
         nombre: (document.getElementById('rondaNombre') as HTMLInputElement).value,
         cliente: selectedCliente,
         unidad: selectedUnidad,
         horario: (document.getElementById('rondaHorario') as HTMLInputElement).value,
-        tolerancia: (document.getElementById('rondaTolerancia') as HTMLInputElement).value,
+        tolerancia: parseInt((document.getElementById('rondaTolerancia') as HTMLInputElement).value || '0', 10),
         toleranciaTipo: (document.getElementById('rondaToleranciaTipo') as HTMLSelectElement).value,
-        frecuencia: (document.getElementById('rondaFrecuenciaSelect') as HTMLSelectElement).value,
+        frecuencia: frecuencia,
+        diasConfig: diasConfig,
         puntosRonda: selectedQRs,
         activa: true,
-        creadoEn: new Date().toISOString()
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        creadoEn: new Date().toISOString() // Mantenemos para compatibilidad con el front nuevo
       };
 
-      await addDoc(collection(db, COLLECTIONS.RONDAS_CONFIG), data);
+      await import('firebase/firestore').then(({ setDoc }) => {
+        return setDoc(doc(db, COLLECTIONS.RONDAS_CONFIG, docId), data);
+      });
       UI.toast('Ronda creada con éxito', 'success');
 
       // Cleanup Form after success
@@ -611,15 +651,22 @@ function renderRondasList() {
     `).join('');
 
   grid.querySelectorAll('.btn-delete-ronda').forEach(btn => {
-    btn.addEventListener('click', async () => {
+    btn.addEventListener('click', () => {
       const id = (btn as HTMLElement).dataset.id;
       if (!id) return;
-      if (!confirm('¿Seguro que desea eliminar esta ronda?')) return;
-      try {
-        await deleteDoc(doc(db, COLLECTIONS.RONDAS_CONFIG, id));
-        UI.toast('Ronda eliminada', 'success');
-        fetchRondas();
-      } catch (e) { UI.toast('Error al eliminar', 'error'); }
+
+      UI.dialog('Confirmar Eliminación', '¿Seguro que desea eliminar esta ronda? Esta acción no se puede deshacer.', async () => {
+        try {
+          UI.showLoader('Eliminando ronda...');
+          await deleteDoc(doc(db, COLLECTIONS.RONDAS_CONFIG, id));
+          UI.toast('Ronda eliminada', 'success');
+          fetchRondas();
+        } catch (e) {
+          UI.toast('Error al eliminar la ronda', 'error');
+        } finally {
+          UI.hideLoader();
+        }
+      }, 'danger', 'Eliminar');
     });
   });
 }
